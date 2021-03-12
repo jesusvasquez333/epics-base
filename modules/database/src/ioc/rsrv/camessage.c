@@ -373,6 +373,11 @@ static int tcp_version_action ( caHdrLargeArray *mp, void *pPayload,
         return RSRV_ERROR;
     }
 
+    /* These fields must be 0 in this type of message */
+    if( mp->m_postsize!=0 || mp->m_cid!=0 || mp->m_available!=0 ) {
+        return RSRV_ERROR;
+    }
+
     tmp = mp->m_dataType - CA_PROTO_PRIORITY_MIN;
     tmp *= epicsThreadPriorityCAServerHigh - epicsThreadPriorityCAServerLow;
     tmp /= CA_PROTO_PRIORITY_MAX - CA_PROTO_PRIORITY_MIN;
@@ -408,6 +413,13 @@ static int tcp_echo_action ( caHdrLargeArray *mp,
 {
     char *pPayloadOut;
     int status;
+
+    /* These fields must be 0 in this type of message */
+    if( mp->m_postsize!=0 || mp->m_dataType!=0 || mp->m_count!=0 || mp->m_cid!=0 ||
+        mp->m_available!=0 ) {
+        return RSRV_ERROR;
+    }
+
     SEND_LOCK ( pClient );
     status = cas_copy_in_header ( pClient, mp->m_cmmd, mp->m_postsize,
         mp->m_dataType, mp->m_count, mp->m_cid, mp->m_available,
@@ -426,6 +438,12 @@ static int tcp_echo_action ( caHdrLargeArray *mp,
 static int events_on_action ( caHdrLargeArray *mp,
                        void *pPayload, struct client *pClient )
 {
+    /* These fields must be 0 in this type of message */
+    if( mp->m_postsize!=0 || mp->m_dataType!=0 || mp->m_count!=0 || mp->m_cid!=0 ||
+        mp->m_available!=0 ) {
+        return RSRV_ERROR;
+    }
+
     db_event_flow_ctrl_mode_off ( pClient->evuser );
     return RSRV_OK;
 }
@@ -436,6 +454,12 @@ static int events_on_action ( caHdrLargeArray *mp,
 static int events_off_action ( caHdrLargeArray *mp,
                        void *pPayload, struct client *pClient )
 {
+    /* These fields must be 0 in this type of message */
+    if( mp->m_postsize!=0 || mp->m_dataType!=0 || mp->m_count!=0 || mp->m_cid!=0 ||
+        mp->m_available!=0 ) {
+        return RSRV_ERROR;
+    }
+
     db_event_flow_ctrl_mode_on ( pClient->evuser );
     return RSRV_OK;
 }
@@ -620,6 +644,11 @@ static int read_action ( caHdrLargeArray *mp, void *pPayloadIn, struct client *p
     int local_fl = 0;
     db_field_log *pfl = NULL;
 
+    /* The payload size must be 0 in this type of message */
+    if( mp->m_postsize!=0 ) {
+        return RSRV_ERROR;
+    }
+
     if ( ! pciu ) {
         logBadId ( pClient, mp, 0 );
         return RSRV_ERROR;
@@ -720,6 +749,11 @@ static int read_notify_action ( caHdrLargeArray *mp, void *pPayload, struct clie
     struct event_ext evext;
 
     if ( INVALID_DB_REQ(mp->m_dataType) ) {
+        return RSRV_ERROR;
+    }
+
+    /* The payload size must be 0 in this type of message */
+    if( mp->m_postsize!=0 ) {
         return RSRV_ERROR;
     }
 
@@ -829,6 +863,11 @@ static int host_name_action ( caHdrLargeArray *mp, void *pPayload,
     char                    *pMalloc;
     int                     chanCount;
 
+    /* These fields must be 0 in this type of message */
+    if( mp->m_dataType!=0 || mp->m_count!=0 || mp->m_cid!=0 || mp->m_available!=0 ) {
+        return RSRV_ERROR;
+    }
+
     epicsMutexMustLock ( client->chanListLock );
     chanCount =
         ellCount ( &client->chanList ) +
@@ -915,6 +954,11 @@ static int client_name_action ( caHdrLargeArray *mp, void *pPayload,
     char                    *pName;
     char                    *pMalloc;
     int                     chanCount;
+
+    /* These fields must be 0 in this type of message */
+    if( mp->m_dataType!=0 || mp->m_count!=0 || mp->m_cid!=0 || mp->m_available!=0 ) {
+        return RSRV_ERROR;
+    }
 
     epicsMutexMustLock ( client->chanListLock );
     chanCount =
@@ -1213,6 +1257,11 @@ static int claim_ciu_action ( caHdrLargeArray *mp,
     struct channel_in_use *pciu;
     struct dbChannel *dbch;
     char *pName = (char *) pPayload;
+
+    /* These fields must be 0 in this type of message */
+    if( mp->m_dataType!=0 || mp->m_count!=0 ) {
+        return RSRV_ERROR;
+    }
 
     /*
      * The available field is used (abused)
@@ -1797,6 +1846,11 @@ static int event_add_action (caHdrLargeArray *mp, void *pPayload, struct client 
         return RSRV_ERROR;
     }
 
+    /* The payload size must be 16 in this type of message */
+    if( mp->m_postsize!=16 ) {
+        return RSRV_ERROR;
+    }
+
     pciu = MPTOPCIU ( mp );
     if ( ! pciu ) {
         logBadId ( client, mp, pPayload );
@@ -1901,6 +1955,11 @@ static int clear_channel_reply ( caHdrLargeArray *mp,
      struct event_ext *pevext;
      struct channel_in_use *pciu;
      int status;
+
+     /* These fields must be 0 in this type of message */
+     if( mp->m_postsize!=0 || mp->m_dataType!=0 || mp->m_count!=0 ) {
+         return RSRV_ERROR;
+     }
 
      /*
       *
@@ -2015,6 +2074,11 @@ static int event_cancel_reply ( caHdrLargeArray *mp, void *pPayload, struct clie
         return RSRV_ERROR;
     }
 
+    /* The payload size must be 0 in this type of message */
+    if( mp->m_postsize!=0 ) {
+        return RSRV_ERROR;
+    }
+
     /*
      *
      * Verify the channel
@@ -2084,6 +2148,13 @@ static int event_cancel_reply ( caHdrLargeArray *mp, void *pPayload, struct clie
 static int read_sync_reply ( caHdrLargeArray *mp, void *pPayload, struct client *client )
 {
     int status;
+
+    /* These fields must be 0 in this type of message */
+    if( mp->m_postsize!=0 || mp->m_dataType!=0 || mp->m_count!=0 || mp->m_cid!=0 ||
+        mp->m_available!=0 ) {
+        return RSRV_ERROR;
+    }
+
     SEND_LOCK(client);
     status = cas_copy_in_header ( client, mp->m_cmmd,
         0u, mp->m_dataType, mp->m_count, mp->m_cid,
@@ -2128,6 +2199,15 @@ static int udp_version_action ( caHdrLargeArray *mp, void *pPayload, struct clie
 
     if (!CA_VSUPPORTED(mp->m_count)) {
         DLOG ( 2, ( "CAS: Ignore version from unsupported client %u\n", mp->m_count ) );
+        return RSRV_ERROR;
+    }
+
+    if ( mp->m_dataType > CA_PROTO_PRIORITY_MAX ) {
+        return RSRV_ERROR;
+    }
+
+    /* These fields must be 0 in this type of message */
+    if( mp->m_postsize!=0 || mp->m_cid!=0 || mp->m_available!=0 ) {
         return RSRV_ERROR;
     }
 
